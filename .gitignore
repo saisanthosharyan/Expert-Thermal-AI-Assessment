@@ -1,0 +1,11 @@
+# Python environment
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Temporary files
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,13 @@
+model,target,feature,importance
+random_forest,r_total_c_per_w,tdp_w,2.2586223241522113e-06
+random_forest,r_total_c_per_w,air_velocity_m_s,0.9256963804350077
+random_forest,r_total_c_per_w,k_tim_w_mk,0.07430136094266816
+gradient_boosting,r_total_c_per_w,tdp_w,0.0
+gradient_boosting,r_total_c_per_w,air_velocity_m_s,0.9245419093010127
+gradient_boosting,r_total_c_per_w,k_tim_w_mk,0.07545809069898735
+random_forest,junction_temperature_c,tdp_w,0.85849011590923
+random_forest,junction_temperature_c,air_velocity_m_s,0.1315503449433232
+random_forest,junction_temperature_c,k_tim_w_mk,0.009959539147446947
+gradient_boosting,junction_temperature_c,tdp_w,0.8586210533652968
+gradient_boosting,junction_temperature_c,air_velocity_m_s,0.1309990598578693
+gradient_boosting,junction_temperature_c,k_tim_w_mk,0.01037988677683396
