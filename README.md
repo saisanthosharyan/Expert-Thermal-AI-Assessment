@@ -48,7 +48,7 @@ Expert-Thermal-AI-Assessment/
 │   ├── correlation_matrix.csv
 │   ├── correlation_heatmap.png
 │   ├── sensitivity_summary.csv
-│   └── sensitivity plots
+│   └── sensitivity_*.png
 │
 ├── reports/
 │   ├── technical_report.md
@@ -72,23 +72,25 @@ Expert-Thermal-AI-Assessment/
 Clone the repository:
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_URL
+git clone https://github.com/saisanthosharyan/Expert-Thermal-AI-Assessment.git
 cd Expert-Thermal-AI-Assessment
 ```
 
-Create and activate a virtual environment:
+Create a virtual environment:
 
 ```bash
 python -m venv venv
 ```
 
-Windows PowerShell:
+Activate the environment.
+
+**Windows PowerShell:**
 
 ```powershell
 .\venv\Scripts\Activate.ps1
 ```
 
-Install dependencies:
+**Install dependencies:**
 
 ```bash
 pip install -r requirements.txt
@@ -112,7 +114,7 @@ Generated datasets, trained models, evaluation metrics, and visualizations are s
 
 ## Dataset
 
-The generated dataset contains **1,872 records and 16 columns**.
+The generated dataset contains **1,872 records and 16 columns**, with no missing values.
 
 The three input features are:
 
@@ -124,6 +126,8 @@ The prediction targets are:
 
 - Total thermal resistance (°C/W)
 - Junction temperature (°C)
+
+Dataset location: `data/thermal_dataset.csv`
 
 ## Machine Learning Models
 
@@ -142,12 +146,32 @@ The models are evaluated using:
 
 | Prediction Target | Model | MAE | RMSE | R² |
 |---|---|---:|---:|---:|
-| Total thermal resistance | Random Forest | 0.00000315 | 0.00001306 | 0.99999986 |
-| Total thermal resistance | Gradient Boosting | 0.00021058 | 0.00026995 | 0.99993932 |
-| Junction temperature | Random Forest | 0.23702234 | 0.55063157 | 0.99884388 |
-| Junction temperature | Gradient Boosting | 0.25095793 | 0.33142438 | 0.99958116 |
+| Total thermal resistance | Random Forest | 0.00000303 | 0.00001191 | 0.99999989 |
+| Total thermal resistance | Gradient Boosting | 0.00019652 | 0.00026358 | 0.99994378 |
+| Junction temperature | Random Forest | 0.24825017 | 0.59519512 | 0.99930828 |
+| Junction temperature | Gradient Boosting | 0.26615214 | 0.35698529 | 0.99975116 |
 
-Random Forest performs best for total thermal resistance. Gradient Boosting achieves the lower RMSE and higher R² for junction temperature, while Random Forest has slightly lower MAE for that target.
+Random Forest performs best for total thermal resistance across all three evaluation metrics.
+
+For junction temperature, Gradient Boosting achieves the lower RMSE and higher R², while Random Forest achieves a slightly lower MAE.
+
+### Feature Importance
+
+The Random Forest feature importance results indicate:
+
+**Total thermal resistance:**
+
+- Air velocity: 0.927756
+- TIM conductivity: 0.072242
+- TDP: 0.000002
+
+**Junction temperature:**
+
+- TDP: 0.923431
+- Air velocity: 0.071383
+- TIM conductivity: 0.005185
+
+Air velocity is the dominant feature for total thermal resistance, while TDP is the dominant feature for junction temperature.
 
 ## Analysis
 
@@ -158,22 +182,51 @@ The project includes:
 - One-factor sensitivity analysis
 - Sensitivity plots for both prediction targets
 
-The results indicate that air velocity has a strong negative relationship with total thermal resistance, while TDP has a strong positive relationship with junction temperature.
+The results indicate that:
+
+- Air velocity has a strong negative correlation with total thermal resistance.
+- TDP has a strong positive correlation with junction temperature.
+- TIM conductivity has a negative relationship with total thermal resistance.
+- TDP does not directly affect the calculated thermal resistance in the implemented model.
+
+These findings describe relationships within the generated simulation dataset.
+
+## Baseline Thermal Calculation
+
+For the baseline inputs:
+
+- TDP: 150 W
+- Air velocity: 1 m/s
+- TIM conductivity: 4 W/m·K
+
+The implemented thermal model produces:
+
+| Parameter | Result |
+|---|---:|
+| Junction-to-case resistance | 0.200000°C/W |
+| TIM resistance | 0.010582°C/W |
+| Convective resistance | 0.158623°C/W |
+| Script-defined `R_hs` aggregate | 0.169205°C/W |
+| Total thermal resistance | 0.369205°C/W |
+| Junction temperature | 80.380740°C |
 
 ## Engineering Assumptions and Limitations
 
-The thermal calculations use the supplied heat-sink reference parameters and documented engineering assumptions.
+The thermal calculations use the supplied heat-sink reference parameters and the calculation logic of the original supplied Python script.
 
-Important assumptions include:
+Important implementation details:
 
 - Air flows along the 90 mm heat-sink length.
-- Reynolds number uses fin spacing as the characteristic length.
-- Fin efficiency and radiation are not included.
-- Convective area includes both fin sides, fin tips, and exposed base surface between fins.
+- Reynolds number uses fin spacing as its characteristic length.
+- The laminar Nusselt correlation uses the 90 mm heat-sink length.
+- Convective area follows the original script's fin-side and exposed-base area calculation.
+- Fin efficiency and thermal radiation are not included.
+- The original supplied Python script uses junction-to-case resistance of 0.2°C/W, whereas the reference report specifies 0.1°C/W.
+- The original supplied Python script does not calculate base conduction resistance.
 
-The reference report does not fully specify the convection area calculation, and its reported reference values do not directly match the implemented complete resistance calculation. This discrepancy is documented in the technical report rather than being silently adjusted.
+The reference report does not fully specify the convection-area calculation, and its reported reference values do not directly match the implemented calculation. The discrepancies and implementation details are documented in the technical report rather than being silently adjusted.
 
-The ML models are evaluated against a held-out portion of a simulated dataset. Their performance should not be interpreted as validation against experimental hardware measurements or proof of generalization to unseen physical designs.
+The ML models are evaluated against a held-out portion of a simulation-generated dataset. Their performance should not be interpreted as validation against experimental hardware measurements or proof of generalization to unseen physical designs.
 
 ## Reports
 
@@ -188,5 +241,3 @@ Additional documentation is available in the `reports/` directory:
 **Sri Sai Santhosh Aryan**
 
 GitHub: https://github.com/saisanthosharyan
-
-LinkedIn: https://www.linkedin.com/in/sri-sai-santhosh-aryan-k-316767280

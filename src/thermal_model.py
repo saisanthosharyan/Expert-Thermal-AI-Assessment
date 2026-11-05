@@ -1,16 +1,15 @@
+
 """
 Heat sink thermal calculation model.
 
-Equations and base dimensions are taken from the supplied
-Thermal Reference PDF.
+This implementation follows the calculation formulas in the
+original Python script supplied by Expert Thermal / XThermal.
 
-Engineering assumptions:
-1. Air flows along the 90 mm heat-sink length.
-2. Reynolds number uses fin spacing as the characteristic length.
-3. The laminar Nusselt correlation uses the 90 mm flow length.
-4. Convective area includes both fin sides, fin tips and exposed
-   base surface between the fins.
-5. Fin efficiency and radiation are not included.
+Important source discrepancy:
+The accompanying written reference report specifies Rjc = 0.1
+and includes base conduction resistance. The supplied Python
+script instead uses Rjc = 0.2 and does not calculate base
+conduction resistance. This implementation follows the script.
 """
 
 # ---------------------------------------------------------
@@ -20,28 +19,32 @@ Engineering assumptions:
 # Processor die dimensions (metres)
 DIE_LENGTH_M = 0.0525
 DIE_WIDTH_M = 0.045
+DIE_THICKNESS_M = 0.0022
 DIE_AREA_M2 = DIE_LENGTH_M * DIE_WIDTH_M
 
 # Heat sink dimensions (metres)
 SINK_LENGTH_M = 0.09
 SINK_WIDTH_M = 0.116
+SINK_HEIGHT_M = 0.027
 BASE_THICKNESS_M = 0.0025
 
 NUMBER_OF_FINS = 60
 FIN_THICKNESS_M = 0.0008
-FIN_HEIGHT_M = 0.0245
+FIN_HEIGHT_M = SINK_HEIGHT_M - BASE_THICKNESS_M
 
-# Materials
-ALUMINIUM_CONDUCTIVITY = 167.0  # W/(m K)
+# Material properties
+ALUMINIUM_CONDUCTIVITY = 167.0
 TIM_THICKNESS_M = 0.0001
 
 # Air properties at 25 degrees Celsius
-AIR_CONDUCTIVITY = 0.0262       # W/(m K)
-AIR_KINEMATIC_VISCOSITY = 1.57e-5  # m²/s
+AIR_CONDUCTIVITY = 0.0262
+AIR_KINEMATIC_VISCOSITY = 1.57e-5
 AIR_PRANDTL_NUMBER = 0.71
 
 AMBIENT_TEMPERATURE_C = 25.0
-JUNCTION_TO_CASE_RESISTANCE = 0.1  # °C/W
+
+# Original supplied Python code uses 0.2 °C/W
+JUNCTION_TO_CASE_RESISTANCE = 0.2
 
 
 # ---------------------------------------------------------
@@ -58,37 +61,38 @@ def calculate_fin_spacing():
 
 def calculate_convective_area():
     """
-    Estimate the exposed heat-sink area available for convection.
+    Calculate convection area using the original supplied code.
 
-    Includes:
-    - Both large sides of every fin
-    - The top tip of every fin
-    - Exposed base surface between fins
+    A_fin = N_fins * (2 * h_fin * L) + (s_f * L)
 
-    This area calculation is an explicit modelling assumption
-    because the reference PDF does not specify Atotal.
+    A_base_convection = (L * W) -
+                        (fin_thickness * N_fins * L)
+
+    A_total = A_fin + A_base_convection
     """
 
-    fin_side_area = (
-        2
-        * NUMBER_OF_FINS
-        * SINK_LENGTH_M
-        * FIN_HEIGHT_M
-    )
+    fin_spacing_m = calculate_fin_spacing()
 
-    fin_tip_area = (
+    # Original supplied fin area calculation
+    fin_area = (
         NUMBER_OF_FINS
-        * SINK_LENGTH_M
-        * FIN_THICKNESS_M
+        * (2 * FIN_HEIGHT_M * SINK_LENGTH_M)
+        + (fin_spacing_m * SINK_LENGTH_M)
     )
 
-    exposed_base_width = (
-        SINK_WIDTH_M - NUMBER_OF_FINS * FIN_THICKNESS_M
+    # Original supplied exposed base area calculation
+    total_base_area = SINK_LENGTH_M * SINK_WIDTH_M
+
+    base_convection_area = (
+        total_base_area
+        - (
+            FIN_THICKNESS_M
+            * NUMBER_OF_FINS
+            * SINK_LENGTH_M
+        )
     )
 
-    exposed_base_area = exposed_base_width * SINK_LENGTH_M
-
-    return fin_side_area + fin_tip_area + exposed_base_area
+    return fin_area + base_convection_area
 
 
 # ---------------------------------------------------------
@@ -144,19 +148,19 @@ def calculate_thermal_performance(
 
     if reynolds_number < 2300:
 
-        # Laminar, developing-flow correlation.
-        # The sink length is used as the flow length.
         nusselt_number = 1.86 * (
-            reynolds_number
-            * AIR_PRANDTL_NUMBER
-            * (2 * fin_spacing_m / SINK_LENGTH_M)
-        ) ** (1 / 3)
+            (
+                reynolds_number
+                * AIR_PRANDTL_NUMBER
+                * (2 * fin_spacing_m)
+                / SINK_LENGTH_M
+            ) ** (1 / 3)
+        )
 
         flow_regime = "Laminar"
 
     else:
 
-        # Turbulent-flow Dittus-Boelter correlation
         nusselt_number = (
             0.023
             * reynolds_number ** 0.8
@@ -188,12 +192,6 @@ def calculate_thermal_performance(
         / (k_tim_w_mk * DIE_AREA_M2)
     )
 
-    # Heat sink base conduction resistance
-    r_conduction = (
-        BASE_THICKNESS_M
-        / (ALUMINIUM_CONDUCTIVITY * DIE_AREA_M2)
-    )
-
     # Convection resistance
     convection_area_m2 = calculate_convective_area()
 
@@ -201,15 +199,17 @@ def calculate_thermal_performance(
         1 / (h_convection * convection_area_m2)
     )
 
-    # Total heat sink resistance
-    r_heat_sink = r_conduction + r_convection
+    # The original supplied script does not calculate
+    # aluminum base conduction resistance.
+    r_conduction = 0.0
 
-    # Total junction-to-ambient resistance
-    r_total = (
-        r_junction_case
-        + r_tim
-        + r_heat_sink
-    )
+    # Follow the original supplied script:
+    # R_hs = R_conv + R_tim
+    r_heat_sink = r_convection + r_tim
+
+    # Original total resistance:
+    # R_total = R_jc + R_hs
+    r_total = r_junction_case + r_heat_sink
 
     # -----------------------------------------------------
     # Step 6: Junction temperature
